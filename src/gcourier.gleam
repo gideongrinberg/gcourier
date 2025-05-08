@@ -1,9 +1,23 @@
 import gcourier/mailer
 import gcourier/message
 import gcourier/types.{SmtpMailer}
+import gleam/erlang/process
 import gleam/option.{Some}
 
 pub fn main() {
+  // Spin up the built-in SMTP server
+  mailer.dev_server()
+  let mailer =
+    SmtpMailer(
+      domain: "localhost",
+      port: 1025,
+      username: "user1",
+      password: "password1",
+      ssl: False,
+      auth: True,
+    )
+
+  // Compose the message
   let message =
     message.build()
     |> message.set_from("party@funclub.org", Some("The Fun Club 🎉"))
@@ -25,15 +39,9 @@ pub fn main() {
     ",
     )
 
-  let mail =
-    SmtpMailer(
-      domain: "localhost",
-      port: 1025,
-      username: "user1",
-      password: "password1",
-      ssl: False,
-      auth: True,
-    )
+  // Send the message
+  mailer.send(mailer, message)
 
-  mailer.send(mail, message)
+  // Keep the server alive – navigate to https://localhost:8025 to view the email!
+  process.sleep_forever()
 }

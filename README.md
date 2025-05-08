@@ -47,6 +47,7 @@ This library is not production ready.
 - [ ] Add robust error handling
 - [ ] Write comprehensive tests
 - [ ] Add other `Mailer` transports (SES, sendgrid, etc.)
+- [ ] Provide a built-in dev server for testing
 
 ## Development
 

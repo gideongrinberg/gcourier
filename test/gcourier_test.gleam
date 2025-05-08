@@ -2,7 +2,7 @@ import gleeunit
 import gleeunit/should
 
 pub fn main() -> Nil {
-  gleeunit.main()
+  Nil
 }
 
 // gleeunit test functions end in `_test`
