@@ -1,7 +1,8 @@
 import gcourier/message.{type Message}
-import gcourier/types.{type Mailer, SmtpMailer}
+import gcourier/types.{type Mailer}
 import gleam/bit_array
 import gleam/list
+import gleam/option.{type Option, None, Some}
 import gleam/string
 import mug
 
@@ -43,10 +44,8 @@ fn socket_receive(socket: mug.Socket) {
 }
 
 fn connect_smtp(mailer: Mailer) {
-  let SmtpMailer(domain, port, username, password, ssl, auth) = mailer
-
   let assert Ok(socket) =
-    mug.new(domain, port)
+    mug.new(mailer.domain, mailer.port)
     |> mug.timeout(milliseconds: 500)
     |> mug.connect()
 
@@ -57,16 +56,73 @@ fn connect_smtp(mailer: Mailer) {
   }
 
   let helo_resp = socket_receive(socket)
-  // TODO check for extensions
-  case mailer.ssl {
-    False -> Nil
-    True -> todo
-  }
-
   case mailer.auth {
     False -> Nil
-    True -> todo
+    True -> auth_user(socket, mailer, helo_resp)
   }
 
+  // case mailer.ssl {
+  //   False -> Nil
+  //   True -> todo
+  // }
+
   socket
+}
+
+fn auth_user(socket: mug.Socket, mailer: Mailer, helo_resp: String) {
+  case string.contains(helo_resp, "AUTH") {
+    False -> panic
+    True -> {
+      let assert [auth_str, ..] =
+        string.split(helo_resp, "\r\n")
+        |> list.filter(fn(a) { a |> string.starts_with("250-AUTH") })
+
+      let methods =
+        auth_str
+        |> string.replace("250-AUTH", "")
+        |> string.split(" ")
+
+      case select_auth_method(["LOGIN", "PLAIN"], methods) {
+        Some("LOGIN") -> {
+          socket_send_checked(socket, "AUTH LOGIN")
+          socket_receive(socket)
+          // todo: check resp
+          socket_send_checked(
+            socket,
+            mailer.username
+              |> bit_array.from_string()
+              |> bit_array.base64_encode(True),
+          )
+
+          socket_receive(socket)
+          socket_send_checked(
+            socket,
+            mailer.password
+              |> bit_array.from_string()
+              |> bit_array.base64_encode(True),
+          )
+          socket_receive(socket)
+        }
+        Some("PLAIN") -> todo
+        Some(_) -> todo
+        None -> todo
+      }
+
+      Nil
+    }
+  }
+}
+
+fn select_auth_method(
+  preferred: List(String),
+  available: List(String),
+) -> Option(String) {
+  case preferred {
+    [] -> None
+    [method, ..rest] ->
+      case list.contains(available, method) {
+        True -> Some(method)
+        False -> select_auth_method(rest, available)
+      }
+  }
 }
