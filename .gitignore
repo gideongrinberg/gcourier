@@ -3,3 +3,6 @@
 /build
 erl_crash.dump
 priv/
+
+*.crt
+*.key
