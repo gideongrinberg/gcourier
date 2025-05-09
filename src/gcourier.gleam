@@ -1,41 +1,51 @@
-import gcourier/message
-import gcourier/smtp
-import gleam/erlang/process.{type Pid}
-import gleam/option.{Some}
+import gleam/erlang/process
+import gleam/hackney
+import gleam/http/request
+import gleam/io
+import shellout
 
 @external(erlang, "priv", "find_bin")
-pub fn find_bin(name: String) -> String
+fn find_bin(name: String) -> String
 
-@external(erlang, "runcmd", "start_link")
-pub fn exec(command: String, args: List(String)) -> Result(Pid, String)
-
-pub fn dev_server() {
-  let binary = find_bin("mailpit")
-  exec(binary, ["--smtp-auth-accept-any", "--smtp-auth-allow-insecure"])
+fn check_live() {
+  let assert Ok(req) = request.to("localhost:8025")
+  let resp = req |> hackney.send
+  case resp {
+    Error(_) -> {
+      process.sleep(1000)
+      check_live()
+    }
+    Ok(_) -> {
+      True
+    }
+  }
 }
 
-pub fn main() {
-  let message =
-    message.build()
-    |> message.set_from("party@funclub.org", Some("The Fun Club 🎉"))
-    |> message.add_recipient("jane.doe@example.com", message.To)
-    |> message.add_recipient("john.doe@example.net", message.CC)
-    |> message.set_subject("You're Invited: Pizza & Ping Pong Night!")
-    |> message.set_html(
-      "
-        <html>
-            <body>
-                <h1 style='color:tomato;'>🎈 You're Invited! 🎈</h1>
-                <p>Hey friend,</p>
-                <p>We're hosting a <strong>Pizza & Ping Pong Night</strong> this Friday at 7 PM. 
-                Expect good vibes, cheesy slices, and fierce paddle battles!</p>
-                <p>Let us know if you're in. And bring your A-game. 🏓</p>
-                <p>Cheers,<br/>The Fun Club</p>
-            </body>
-        </html>
-    ",
-    )
+pub fn dev_server() {
+  let assert Ok(req) = request.to("http://localhost:8025")
+  let resp = req |> hackney.send
+  case resp {
+    Error(_) -> {
+      let binary = find_bin("mailpit")
+      process.start(
+        fn() {
+          shellout.command(
+            run: binary,
+            with: ["--smtp-auth-accept-any", "--smtp-auth-allow-insecure"],
+            in: ".",
+            opt: [],
+          )
+        },
+        True,
+      )
 
-  smtp.send("localhost", 1025, Some(#("user1", "password1")), message)
-  process.sleep_forever()
+      check_live()
+      Nil
+    }
+    Ok(_) -> {
+      io.println("Successfully started SMTP server on localhost:1025.")
+      io.println("Running web UI at http://localhost:8025.")
+      Nil
+    }
+  }
 }
