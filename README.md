@@ -9,9 +9,8 @@
 gleam add gcourier@1
 ```
 ```gleam
-import gcourier/mailer
 import gcourier/message
-import gcourier/types.{SmtpMailer}
+import gcourier/smtp
 import gleam/option.{Some}
 
 pub fn main() {
@@ -21,32 +20,35 @@ pub fn main() {
     |> message.add_recipient("jane.doe@example.com", message.To)
     |> message.add_recipient("john.doe@example.net", message.CC)
     |> message.set_subject("You're Invited: Pizza & Ping Pong Night!")
-
-  let mailer =
-    SmtpMailer(
-      domain: "localhost",
-      port: 1025,
-      username: "",
-      password: "",
-      ssl: False,
-      auth: False,
+    |> message.set_html(
+      "
+        <html>
+            <body>
+                <h1 style='color:tomato;'>🎈 You're Invited! 🎈</h1>
+                <p>Hey friend,</p>
+                <p>We're hosting a <strong>Pizza & Ping Pong Night</strong> this Friday at 7 PM. 
+                Expect good vibes, cheesy slices, and fierce paddle battles!</p>
+                <p>Let us know if you're in. And bring your A-game. 🏓</p>
+                <p>Cheers,<br/>The Fun Club</p>
+            </body>
+        </html>
+    ",
     )
 
-  mailer.send(mailer, message)
+  smtp.send("localhost", 1025, Some(#("user1", "password1")), message)
 }
 ```
 
 Further documentation can be found at <https://hexdocs.pm/gcourier>.
 
-## Roadmap
-
-This library is not production ready.
+## Features
 
 - [x] Send emails over SMTP
-- [ ] Implement ESMTP features (auth, TLS, etc)  
-- [ ] Add robust error handling
-- [ ] Write comprehensive tests
-- [ ] Add other `Mailer` transports (SES, sendgrid, etc.)
+- [x] Implement SMTP authentication  
+- [ ] Add support for TLS and OAUTH2
+- [ ] Bundle an SMTP server for development
+- [ ] Add support for additional transports like sendmail and SES
+- [ ] Improve test coverage and error handling
 
 ## Development
 
