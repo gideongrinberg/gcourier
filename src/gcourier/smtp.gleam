@@ -2,6 +2,7 @@
 /// As of writing, the library implements only one `Mailer`, which is `SmtpMailer`.
 import gcourier/message.{type Message}
 import gleam/bit_array
+import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
@@ -83,6 +84,10 @@ fn connect_smtp(mailer: Mailer) {
   }
 
   let helo_resp = socket_receive(socket)
+  let socket = case string.contains(helo_resp, "STARTTLS") {
+    False -> socket
+    True -> start_tls(socket)
+  }
   case mailer.auth {
     False -> Nil
     True -> auth_user(socket, mailer, helo_resp)
@@ -93,7 +98,11 @@ fn connect_smtp(mailer: Mailer) {
 
 fn auth_user(socket: mug.Socket, mailer: Mailer, helo_resp: String) {
   case string.contains(helo_resp, "AUTH") {
-    False -> panic
+    False -> {
+      io.println_error(
+        "SMTP server does not support authentication. Proceeding as unauthenticated user.",
+      )
+    }
     True -> {
       socket_send_checked(socket, "AUTH LOGIN")
       socket_receive(socket)
@@ -113,8 +122,18 @@ fn auth_user(socket: mug.Socket, mailer: Mailer, helo_resp: String) {
           |> bit_array.base64_encode(True),
       )
       socket_receive(socket)
+      Nil
     }
   }
 
   Nil
+}
+
+fn start_tls(socket) {
+  socket_send_checked(socket, "STARTTLS\r\n")
+  socket_receive(socket)
+  let assert Ok(socket) =
+    mug.upgrade(socket, mug.DangerouslyDisableVerification, 1000)
+
+  socket
 }
