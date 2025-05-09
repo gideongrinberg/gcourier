@@ -1,8 +1,9 @@
-import gleeunit
+import gcourier
 import gleeunit/should
 
 pub fn main() -> Nil {
-  gleeunit.main()
+  gcourier.dev_server()
+  Nil
 }
 
 // gleeunit test functions end in `_test`

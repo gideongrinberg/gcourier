@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ ! -f gleam.toml ]; then
+    echo "Please run from project root"
+    exit
+fi
+
+mkdir -p priv/
+
+BASE_URL=https://github.com/axllent/mailpit/releases/download/v1.24.2
+PRIV_DIR=./priv
+TMP_DIR=$(mktemp -d)
+
+download() {
+  local url=$1
+  local tmpdir=$2
+  local destdir=$3
+
+  local filename
+  filename=$(basename "$url")
+  local workdir="$tmpdir/${filename%.*.*}-extract"
+
+  echo "→ Processing $filename …"
+
+  mkdir -p "$tmpdir" "$workdir" "$destdir"
+  echo "   Downloading $url"
+  curl -fsSL "$url" -o "$tmpdir/$filename"
+
+  echo "   Extracting $filename"
+  case "$filename" in
+    *.tar.gz)
+      tar -xzf "$tmpdir/$filename" -C "$workdir"
+      ;;
+    *.zip)
+      unzip -qq "$tmpdir/$filename" -d "$workdir"
+      ;;
+    *)
+      echo "   ← Unknown archive format: $filename" >&2
+      rm -rf "$workdir"
+      return 1
+      ;;
+  esac
+
+  echo "   Moving contents to $destdir"
+  mv "$workdir"/* "$destdir"/
+
+  rm -rf "$workdir"
+  echo "   ✔ Done."
+}
+
+download $BASE_URL/mailpit-darwin-amd64.tar.gz $TMP_DIR $PRIV_DIR/darwin/x86_64
+download $BASE_URL/mailpit-darwin-amd64.tar.gz $TMP_DIR $PRIV_DIR/darwin/aarch64
+
+download $BASE_URL/mailpit-linux-amd64.tar.gz $TMP_DIR $PRIV_DIR/linux/x86_64
+download $BASE_URL/mailpit-linux-arm64.tar.gz $TMP_DIR $PRIV_DIR/linux/aarch64
+
+download $BASE_URL/mailpit-windows-amd64.zip $TMP_DIR $PRIV_DIR/windows/x86_64
+download $BASE_URL/mailpit-windows-arm64.zip $TMP_DIR $PRIV_DIR/windows/aarch64

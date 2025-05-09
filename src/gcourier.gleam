@@ -1,6 +1,18 @@
 import gcourier/message
 import gcourier/smtp
+import gleam/erlang/process.{type Pid}
 import gleam/option.{Some}
+
+@external(erlang, "priv", "find_bin")
+pub fn find_bin(name: String) -> String
+
+@external(erlang, "runcmd", "start_link")
+pub fn exec(command: String, args: List(String)) -> Result(Pid, String)
+
+pub fn dev_server() {
+  let binary = find_bin("mailpit")
+  exec(binary, ["--smtp-auth-accept-any", "--smtp-auth-allow-insecure"])
+}
 
 pub fn main() {
   let message =
@@ -25,4 +37,5 @@ pub fn main() {
     )
 
   smtp.send("localhost", 1025, Some(#("user1", "password1")), message)
+  process.sleep_forever()
 }

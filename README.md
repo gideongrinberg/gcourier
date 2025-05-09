@@ -8,6 +8,7 @@
 ```sh
 gleam add gcourier@1
 ```
+
 ```gleam
 import gcourier/message
 import gcourier/smtp

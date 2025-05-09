@@ -2,6 +2,7 @@
 # You typically do not need to edit this file
 
 packages = [
+  { name = "erlexec", version = "2.2.0", build_tools = ["rebar3"], requirements = [], otp_app = "erlexec", source = "hex", outer_checksum = "19E4E1C170DE5594DA1C67A8A9A0DEFAE0BC407E138A70B14FEA031FE9E67347" },
   { name = "gleam_erlang", version = "0.34.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_erlang", source = "hex", outer_checksum = "0C38F2A128BAA0CEF17C3000BD2097EB80634E239CE31A86400C4416A5D0FDCC" },
   { name = "gleam_stdlib", version = "0.59.0", build_tools = ["gleam"], requirements = [], otp_app = "gleam_stdlib", source = "hex", outer_checksum = "F8FEE9B35797301994B81AF75508CF87C328FE1585558B0FFD188DC2B32EAA95" },
   { name = "gleam_time", version = "1.2.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_time", source = "hex", outer_checksum = "D71F1AFF7FEB534FF55E5DC58E534E9201BA75A444619788A2E4DEA4EBD87D16" },
@@ -10,6 +11,8 @@ packages = [
 ]
 
 [requirements]
+erlexec = { version = ">= 2.2.0 and < 3.0.0" }
+gleam_erlang = { version = ">= 0.34.0 and < 1.0.0" }
 gleam_stdlib = { version = ">= 0.59.0 and < 1.0.0" }
 gleam_time = { version = ">= 1.2.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.0.0 and < 2.0.0" }
