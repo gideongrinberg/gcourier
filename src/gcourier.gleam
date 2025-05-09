@@ -1,6 +1,5 @@
-import gcourier/mailer
 import gcourier/message
-import gcourier/types.{SmtpMailer}
+import gcourier/smtp
 import gleam/option.{Some}
 
 pub fn main() {
@@ -25,15 +24,5 @@ pub fn main() {
     ",
     )
 
-  let mail =
-    SmtpMailer(
-      domain: "localhost",
-      port: 1025,
-      username: "user1",
-      password: "password1",
-      ssl: False,
-      auth: True,
-    )
-
-  mailer.send(mail, message)
+  smtp.send("localhost", 1025, Some(#("user1", "password1")), message)
 }

@@ -1,12 +1,38 @@
+/// This module provides the logic for sending mail using a [`Mailer`](/gcourier/gcourier/types.html#Mailer).
+/// As of writing, the library implements only one `Mailer`, which is `SmtpMailer`.
 import gcourier/message.{type Message}
-import gcourier/types.{type Mailer}
 import gleam/bit_array
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
 import mug
 
-pub fn send_smtp(mailer: Mailer, msg: Message) {
+type Mailer {
+  SmtpMailer(
+    host: String,
+    port: Int,
+    username: String,
+    password: String,
+    auth: Bool,
+  )
+}
+
+pub fn send(
+  host: String,
+  port: Int,
+  auth: Option(#(String, String)),
+  message: Message,
+) {
+  let mailer = case auth {
+    Some(#(username, password)) ->
+      SmtpMailer(host:, port:, username:, password:, auth: True)
+    None -> SmtpMailer(host:, port:, username: "", password: "", auth: False)
+  }
+
+  send_smtp(mailer, message)
+}
+
+fn send_smtp(mailer: Mailer, msg: Message) {
   let socket = connect_smtp(mailer)
   let from_cmd = "MAIL FROM:<" <> mailer.username <> ">"
   socket_send_checked(socket, from_cmd)
@@ -26,6 +52,7 @@ pub fn send_smtp(mailer: Mailer, msg: Message) {
 
   socket_send_checked(socket, "QUIT")
   socket_receive(socket)
+  Nil
 }
 
 fn socket_send_checked(socket: mug.Socket, value: String) {
@@ -45,14 +72,14 @@ fn socket_receive(socket: mug.Socket) {
 
 fn connect_smtp(mailer: Mailer) {
   let assert Ok(socket) =
-    mug.new(mailer.domain, mailer.port)
+    mug.new(mailer.host, mailer.port)
     |> mug.timeout(milliseconds: 500)
     |> mug.connect()
 
   let resp = socket_receive(socket)
   let assert Ok(_) = case string.contains(resp, "ESMTP") {
-    True -> socket_send(socket, "EHLO " <> mailer.domain)
-    False -> socket_send(socket, "HELO " <> mailer.domain)
+    True -> socket_send(socket, "EHLO " <> mailer.host)
+    False -> socket_send(socket, "HELO " <> mailer.host)
   }
 
   let helo_resp = socket_receive(socket)
