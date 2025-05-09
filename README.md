@@ -10,11 +10,14 @@ gleam add gcourier@1
 ```
 
 ```gleam
+import gcourier
 import gcourier/message
 import gcourier/smtp
+import gleam/erlang/process
 import gleam/option.{Some}
 
 pub fn main() {
+  gcourier.dev_server() // starts an SMTP server that captures and displays emails.
   let message =
     message.build()
     |> message.set_from("party@funclub.org", Some("The Fun Club 🎉"))
@@ -36,7 +39,10 @@ pub fn main() {
     ",
     )
 
+  // Send the email
+  // Navigate to localhost:8025 to view it in the browser.
   smtp.send("localhost", 1025, Some(#("user1", "password1")), message)
+  process.sleep_forever()
 }
 ```
 

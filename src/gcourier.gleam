@@ -21,6 +21,9 @@ fn check_live() {
   }
 }
 
+/// Starts an SMTP server that captures outgoing mail and
+/// displays it in the browser. By default, the server runs on localhost:1025, 
+/// and the UI runs on localhost:8025. It accepts username and password combination.
 pub fn dev_server() {
   let assert Ok(req) = request.to("http://localhost:8025")
   let resp = req |> hackney.send
