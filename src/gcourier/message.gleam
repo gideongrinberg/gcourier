@@ -162,10 +162,16 @@ pub fn set_date(message: Message, date: String) {
 pub fn set_html(message: Message, html: String) {
   message
   |> set_header("Content-Type", "text/html")
-  |> set_text(html)
+  |> set_content(html)
 }
 
 pub fn set_text(message: Message, text: String) {
+  message
+  |> set_header("Content-Type", "text/plain")
+  |> set_content(text)
+}
+
+fn set_content(message: Message, text: String) {
   Message(..message, content: text)
 }
 
