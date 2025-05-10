@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"io"
 	"log"
@@ -19,28 +20,24 @@ func main() {
 	// Parse command-line arguments
 	clientAddr := flag.String("listen", ":1025", "Address to listen for client connections")
 	serverAddr := flag.String("server", "localhost:25", "Address of the SMTP server")
-	certFile := flag.String("cert", "cert.pem", "TLS certificate file")
-	keyFile := flag.String("key", "key.pem", "TLS key file")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
 	flag.Parse()
 
-	// Load TLS certificate
-	cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
+	certPool, err := x509.SystemCertPool()
 	if err != nil {
 		log.Fatalf("Error loading certificate and key: %v", err)
 	}
+
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
+		RootCAs: certPool,
 	}
 
-	// Configure logging
 	if *verbose {
 		log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 	} else {
 		log.SetFlags(log.Ldate | log.Ltime)
 	}
 
-	// Start listening for client connections
 	listener, err := net.Listen("tcp", *clientAddr)
 	if err != nil {
 		log.Fatalf("Error listening: %v", err)
@@ -60,13 +57,8 @@ func main() {
 
 func handleConnection(clientConn net.Conn, serverAddr string, tlsConfig *tls.Config, verbose bool) {
 	defer clientConn.Close()
-
-	// Set initial timeout
 	clientConn.SetDeadline(time.Now().Add(timeout))
-
 	log.Printf("New client connection from %s", clientConn.RemoteAddr())
-
-	// Connect to the SMTP server
 	serverConn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		log.Printf("Error connecting to server: %v", err)
