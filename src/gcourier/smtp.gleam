@@ -66,7 +66,7 @@ fn socket_send(socket: mug.Socket, value: String) {
 }
 
 fn socket_receive(socket: mug.Socket) {
-  let assert Ok(packet) = mug.receive(socket, 500)
+  let assert Ok(packet) = mug.receive(socket, 5000)
   let assert Ok(resp) = bit_array.to_string(packet)
   resp
 }
@@ -84,10 +84,18 @@ fn connect_smtp(mailer: Mailer) {
   }
 
   let helo_resp = socket_receive(socket)
-  let socket = case string.contains(helo_resp, "STARTTLS") {
-    False -> socket
-    True -> start_tls(socket)
+  let helo_resp = case string.contains(helo_resp, "STARTTLS") {
+    False -> helo_resp
+    True -> {
+      socket_send_checked(socket, "STARTTLS")
+
+      let assert Ok(_) = mug.receive(socket, 5000)
+      socket_send_checked(socket, "EHLO " <> mailer.host)
+      socket_receive(socket)
+    }
   }
+
+  echo helo_resp
   case mailer.auth {
     False -> Nil
     True -> auth_user(socket, mailer, helo_resp)
@@ -127,13 +135,4 @@ fn auth_user(socket: mug.Socket, mailer: Mailer, helo_resp: String) {
   }
 
   Nil
-}
-
-fn start_tls(socket) {
-  socket_send_checked(socket, "STARTTLS\r\n")
-  socket_receive(socket)
-  let assert Ok(socket) =
-    mug.upgrade(socket, mug.DangerouslyDisableVerification, 1000)
-
-  socket
 }

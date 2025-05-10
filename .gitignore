@@ -6,3 +6,4 @@ priv/
 
 *.crt
 *.key
+*.pem
