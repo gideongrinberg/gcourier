@@ -190,18 +190,15 @@ fn format_address(address: String, name: Option(String)) {
   }
 }
 
-fn current_date() {
-  let now =
-    timestamp.system_time() |> timestamp.to_calendar(duration.seconds(0))
-
-  let cal = now.0
-  let time = now.1
+@internal
+pub fn date_from_cal(date cal: calendar.Date, time time: calendar.TimeOfDay) {
   let month = {
     calendar.month_to_string(cal.month) |> string.slice(0, 3)
   }
 
   // TODO: handle day and offset
-  "Mon, "
+  day_of_week(cal.day, calendar.month_to_int(cal.month), cal.year)
+  <> ", "
   <> int.to_string(cal.day)
   <> " "
   <> month
@@ -215,4 +212,39 @@ fn current_date() {
   <> int.to_string(time.seconds)
   <> " "
   <> "+00:00"
+}
+
+@internal
+pub fn day_of_week(day q: Int, month m: Int, year y: Int) {
+  let y = case m < 3 {
+    True -> y - 1
+    False -> y
+  }
+
+  let m = case m < 3 {
+    True -> m + 12
+    False -> m
+  }
+
+  let k = y % 100
+  let j = y / 100
+
+  let h = q + { 13 * { m + 1 } / 5 } + k + k / 4 + j / 4 + 5 * j
+  case h % 7 {
+    0 -> "Sat"
+    1 -> "Sun"
+    2 -> "Mon"
+    3 -> "Tue"
+    4 -> "Wed"
+    5 -> "Thu"
+    6 -> "Fri"
+    _ -> panic
+  }
+}
+
+fn current_date() {
+  let now =
+    timestamp.system_time() |> timestamp.to_calendar(duration.seconds(0))
+
+  date_from_cal(now.0, now.1)
 }

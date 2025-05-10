@@ -111,4 +111,44 @@ pub fn render_headers_test() {
 
   rendered |> should_contain("Hello world")
 }
+
 // TODO: missing from, missing to
+
+pub fn week_day_test() {
+  // Basic tests for each day of the week
+  message.day_of_week(10, 5, 2025) |> should.equal("Sat")
+  message.day_of_week(11, 5, 2025) |> should.equal("Sun")
+  message.day_of_week(12, 5, 2025) |> should.equal("Mon")
+  message.day_of_week(13, 5, 2025) |> should.equal("Tue")
+  message.day_of_week(14, 5, 2025) |> should.equal("Wed")
+  message.day_of_week(15, 5, 2025) |> should.equal("Thu")
+  message.day_of_week(16, 5, 2025) |> should.equal("Fri")
+
+  // Month boundaries
+  message.day_of_week(1, 1, 2025) |> should.equal("Wed")
+  message.day_of_week(31, 1, 2025) |> should.equal("Fri")
+  message.day_of_week(1, 2, 2025) |> should.equal("Sat")
+  message.day_of_week(28, 2, 2025) |> should.equal("Fri")
+
+  // Leap year tests
+  message.day_of_week(29, 2, 2024) |> should.equal("Thu")
+  message.day_of_week(1, 3, 2024) |> should.equal("Fri")
+  message.day_of_week(1, 3, 2025) |> should.equal("Sat")
+
+  // Various months and years
+  message.day_of_week(4, 7, 1776) |> should.equal("Thu")
+  message.day_of_week(25, 12, 2024) |> should.equal("Wed")
+  message.day_of_week(31, 10, 2025) |> should.equal("Fri")
+  message.day_of_week(11, 11, 2025) |> should.equal("Tue")
+
+  // Historical dates
+  message.day_of_week(1, 1, 2000) |> should.equal("Sat")
+  message.day_of_week(30, 6, 1969) |> should.equal("Mon")
+  message.day_of_week(20, 7, 1969) |> should.equal("Sun")
+  message.day_of_week(21, 12, 2012) |> should.equal("Fri")
+
+  // Edge cases
+  message.day_of_week(29, 2, 2000) |> should.equal("Tue")
+  message.day_of_week(31, 12, 1999) |> should.equal("Fri")
+  message.day_of_week(1, 1, 1900) |> should.equal("Mon")
+}
