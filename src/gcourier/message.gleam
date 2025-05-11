@@ -1,6 +1,7 @@
 //// This module provides tools for constructing RFC-compliant email messages.
 
 import gleam/dict.{type Dict}
+import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -196,7 +197,17 @@ pub fn date_from_cal(date cal: calendar.Date, time time: calendar.TimeOfDay) {
     calendar.month_to_string(cal.month) |> string.slice(0, 3)
   }
 
-  // TODO: handle day and offset
+  let offset = float.round(duration.to_seconds(calendar.local_offset()))
+  let offset_sign = case offset > 0 {
+    True -> "+"
+    False -> ""
+  }
+
+  let offset_hours =
+    { offset / 3600 } |> int.to_string |> string.pad_start(2, "0")
+  let offset_minutes =
+    { { offset % 3600 } / 60 } |> int.to_string |> string.pad_start(2, "0")
+
   day_of_week(cal.day, calendar.month_to_int(cal.month), cal.year)
   <> ", "
   <> int.to_string(cal.day)
@@ -211,7 +222,10 @@ pub fn date_from_cal(date cal: calendar.Date, time time: calendar.TimeOfDay) {
   <> ":"
   <> int.to_string(time.seconds)
   <> " "
-  <> "+00:00"
+  <> offset_sign
+  <> offset_hours
+  <> ":"
+  <> offset_minutes
 }
 
 @internal
