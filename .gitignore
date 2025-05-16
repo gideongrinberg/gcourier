@@ -7,3 +7,5 @@ priv/
 *.crt
 *.key
 *.pem
+
+.DS_Store

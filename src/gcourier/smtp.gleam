@@ -103,8 +103,6 @@ fn connect_smtp(mailer: Mailer) {
     }
   }
 
-  echo helo_resp
-
   case mailer.auth {
     False -> Nil
     True -> auth_user(socket, mailer, helo_resp)
