@@ -1,0 +1,1 @@
+These files are from [arnu515's fork](https://github.com/arnu515/mug) of [lpil's `mug` library ](https://github.com/lpil/mug), which is available under the Apache-2.0 License. I will replace it with a Hex-published version of `mug` as soon as the upstream `mug` library merges SSL support.

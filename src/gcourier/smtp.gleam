@@ -1,12 +1,12 @@
 /// This module provides the logic for sending mail using a [`Mailer`](/gcourier/gcourier/types.html#Mailer).
 /// As of writing, the library implements only one `Mailer`, which is `SmtpMailer`.
 import gcourier/message.{type Message}
+import gcourier/mug/mug
 import gleam/bit_array
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
-import mug
 
 type Mailer {
   SmtpMailer(
