@@ -2,15 +2,11 @@
 /// As of writing, the library implements only one `Mailer`, which is `SmtpMailer`.
 import gcourier/message.{type Message}
 import gleam/bit_array
-import gleam/dynamic
-import gleam/erlang/process
-import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
 import mug
-import shellout
 
 type Mailer {
   SmtpMailer(
@@ -37,41 +33,11 @@ pub fn send(
   send_smtp(mailer, message)
 }
 
-@external(erlang, "priv", "find_bin")
-fn find_bin(name: String) -> String
-
-@external(erlang, "port", "find_port")
-fn find_port() -> Int
-
-fn start_proxy(mailer: Mailer) {
-  let port = find_port()
-  process.start(
-    fn() {
-      shellout.command(
-        run: find_bin("proxy"),
-        with: [
-          "-listen",
-          "localhost:" <> int.to_string(port),
-          "-server",
-          mailer.host <> ":" <> int.to_string(mailer.port),
-        ],
-        in: ".",
-        opt: [],
-      )
-    },
-    True,
-  )
-
-  process.sleep(5000)
-  port
-}
-
 fn send_smtp(mailer: Mailer, msg: Message) {
-  let port = start_proxy(mailer)
   let socket =
     connect_smtp(SmtpMailer(
-      host: "localhost",
-      port: port,
+      host: mailer.host,
+      port: mailer.port,
       username: mailer.username,
       password: mailer.password,
       auth: mailer.auth,
@@ -125,16 +91,19 @@ fn connect_smtp(mailer: Mailer) {
   }
 
   let helo_resp = socket_receive(socket)
-  let helo_resp = case string.contains(helo_resp, "STARTTLS") {
-    False -> helo_resp
+  let #(helo_resp, socket) = case string.contains(helo_resp, "STARTTLS") {
+    False -> #(helo_resp, socket)
     True -> {
       socket_send_checked(socket, "STARTTLS")
-
       let assert Ok(_) = mug.receive(socket, 5000)
+      let assert Ok(socket) =
+        mug.upgrade(socket, mug.DangerouslyDisableVerification, 10_000)
       socket_send_checked(socket, "EHLO " <> mailer.host)
-      socket_receive(socket)
+      #(socket_receive(socket), socket)
     }
   }
+
+  echo helo_resp
 
   case mailer.auth {
     False -> Nil

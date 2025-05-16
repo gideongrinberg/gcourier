@@ -1,0 +1,8 @@
+#! /usr/bin/env sh
+
+openssl req -x509 -newkey rsa:4096 -nodes \
+  -keyout /tmp/key.pem -out /tmp/cert.pem \
+  -sha256 -days 3650 \
+  -subj "/C=US/ST=State/L=City/O=Org/OU=Unit/CN=localhost"
+
+mailpit --smtp-tls-key /tmp/key.pem --smtp-tls-cert /tmp/cert.pem
