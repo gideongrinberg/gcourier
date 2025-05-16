@@ -10,50 +10,154 @@ mkdir -p priv/
 
 BASE_URL=https://github.com/axllent/mailpit/releases/download/v1.24.2
 PRIV_DIR=./priv
+
+# Function to create Unix shell stub that replaces itself
+create_unix_stub() {
+    local platform=$1
+    local arch=$2
+    local archive_name=$3
+    local stub_dir="$PRIV_DIR/$platform/$arch"
+    local stub_file="$stub_dir/mailpit"
+    
+    mkdir -p "$stub_dir"
+    
+    cat > "$stub_file" << 'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Get the directory where this stub is located
+STUB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MAILPIT_BINARY="$STUB_DIR/mailpit-binary"
+
+# If binary exists, immediately replace this script process with the binary
+if [ -f "$MAILPIT_BINARY" ]; then
+    exec "$MAILPIT_BINARY" "$@"
+fi
+
+# Binary doesn't exist, so download it
+echo "Mailpit binary not found. Downloading..."
+
+BASE_URL="https://github.com/axllent/mailpit/releases/download/v1.24.2"
 TMP_DIR=$(mktemp -d)
 
-download() {
-  local url=$1
-  local tmpdir=$2
-  local destdir=$3
+# Determine platform and architecture
+case "$(uname -s)" in
+    Darwin) PLATFORM="darwin" ;;
+    Linux)  PLATFORM="linux" ;;
+    *)      echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
+esac
 
-  local filename
-  filename=$(basename "$url")
-  local workdir="$tmpdir/${filename%.*.*}-extract"
+case "$(uname -m)" in
+    x86_64|amd64) ARCH="amd64" ;;
+    arm64|aarch64) ARCH="arm64" ;;
+    *)      echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+esac
 
-  echo "→ Processing $filename …"
+ARCHIVE_NAME="mailpit-${PLATFORM}-${ARCH}.tar.gz"
+DOWNLOAD_URL="$BASE_URL/$ARCHIVE_NAME"
 
-  mkdir -p "$tmpdir" "$workdir" "$destdir"
-  echo "   Downloading $url"
-  curl -fsSL "$url" -o "$tmpdir/$filename"
+# Download and extract
+echo "Downloading $DOWNLOAD_URL"
+curl -fsSL "$DOWNLOAD_URL" -o "$TMP_DIR/$ARCHIVE_NAME"
 
-  echo "   Extracting $filename"
-  case "$filename" in
-    *.tar.gz)
-      tar -xzf "$tmpdir/$filename" -C "$workdir"
-      ;;
-    *.zip)
-      unzip -qq "$tmpdir/$filename" -d "$workdir"
-      ;;
-    *)
-      echo "   ← Unknown archive format: $filename" >&2
-      rm -rf "$workdir"
-      return 1
-      ;;
-  esac
+echo "Extracting..."
+tar -xzf "$TMP_DIR/$ARCHIVE_NAME" -C "$TMP_DIR"
 
-  echo "   Moving contents to $destdir"
-  mv "$workdir"/* "$destdir"/
+# Move binary to the expected location
+mv "$TMP_DIR/mailpit" "$MAILPIT_BINARY"
+chmod +x "$MAILPIT_BINARY"
 
-  rm -rf "$workdir"
-  echo "   ✔ Done."
+# Cleanup
+rm -rf "$TMP_DIR"
+echo "Download complete!"
+
+# Now replace this script process with the binary
+exec "$MAILPIT_BINARY" "$@"
+EOF
+    
+    chmod +x "$stub_file"
+    echo "Created Unix stub: $stub_file"
 }
 
-download $BASE_URL/mailpit-darwin-amd64.tar.gz $TMP_DIR $PRIV_DIR/darwin/x86_64
-download $BASE_URL/mailpit-darwin-amd64.tar.gz $TMP_DIR $PRIV_DIR/darwin/aarch64
+# Function to create Windows batch stub that replaces itself
+create_windows_stub() {
+    local arch=$1
+    local stub_dir="$PRIV_DIR/windows/$arch"
+    local stub_file="$stub_dir/mailpit.bat"
+    
+    mkdir -p "$stub_dir"
+    
+    cat > "$stub_file" << 'EOF'
+@echo off
+setlocal enabledelayedexpansion
 
-download $BASE_URL/mailpit-linux-amd64.tar.gz $TMP_DIR $PRIV_DIR/linux/x86_64
-download $BASE_URL/mailpit-linux-arm64.tar.gz $TMP_DIR $PRIV_DIR/linux/aarch64
+REM Get the directory where this stub is located
+set "STUB_DIR=%~dp0"
+set "MAILPIT_BINARY=%STUB_DIR%mailpit.exe"
 
-download $BASE_URL/mailpit-windows-amd64.zip $TMP_DIR $PRIV_DIR/windows/x86_64
-download $BASE_URL/mailpit-windows-arm64.zip $TMP_DIR $PRIV_DIR/windows/aarch64
+REM If binary exists, immediately execute it and exit
+if exist "%MAILPIT_BINARY%" (
+    "%MAILPIT_BINARY%" %*
+    exit /b %ERRORLEVEL%
+)
+
+REM Binary doesn't exist, so download it
+echo Mailpit binary not found. Downloading...
+
+set "BASE_URL=https://github.com/axllent/mailpit/releases/download/v1.24.2"
+set "TMP_DIR=%TEMP%\mailpit-download-%RANDOM%"
+
+REM Determine architecture
+if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
+    set "ARCH=amd64"
+) else if "%PROCESSOR_ARCHITECTURE%"=="ARM64" (
+    set "ARCH=arm64"
+) else (
+    echo Unsupported architecture: %PROCESSOR_ARCHITECTURE% >&2
+    exit /b 1
+)
+
+set "ARCHIVE_NAME=mailpit-windows-!ARCH!.zip"
+set "DOWNLOAD_URL=%BASE_URL%/!ARCHIVE_NAME!"
+
+mkdir "%TMP_DIR%"
+
+REM Download using curl (available in Windows 10+)
+echo Downloading !DOWNLOAD_URL!
+curl -fsSL "!DOWNLOAD_URL!" -o "%TMP_DIR%\!ARCHIVE_NAME!"
+
+REM Extract using tar (available in Windows 10+)
+echo Extracting...
+tar -xf "%TMP_DIR%\!ARCHIVE_NAME!" -C "%TMP_DIR%"
+
+REM Move binary to the expected location
+move "%TMP_DIR%\mailpit.exe" "%MAILPIT_BINARY%"
+
+REM Cleanup
+rmdir /s /q "%TMP_DIR%"
+echo Download complete!
+
+REM Now execute the binary
+"%MAILPIT_BINARY%" %*
+exit /b %ERRORLEVEL%
+EOF
+    
+    echo "Created Windows stub: $stub_file"
+}
+
+echo "Generating platform-specific stubs..."
+
+create_unix_stub "darwin" "x86_64" "mailpit-darwin-amd64.tar.gz"
+create_unix_stub "darwin" "aarch64" "mailpit-darwin-amd64.tar.gz"
+
+create_unix_stub "linux" "x86_64" "mailpit-linux-amd64.tar.gz"
+create_unix_stub "linux" "aarch64" "mailpit-linux-arm64.tar.gz"
+
+create_windows_stub "x86_64"
+create_windows_stub "aarch64"
+
+echo ""
+echo "✔ All stubs created successfully!"
+echo ""
+echo "Stubs will download and execute binaries transparently."
+echo "After first run, the script effectively becomes the binary."
