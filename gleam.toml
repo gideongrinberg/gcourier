@@ -5,8 +5,12 @@ licences = ["MIT"]
 repository = { type = "github", user = "gideongrinberg", repo = "gcourier" }
 target = "erlang"
 # links = [{ title = "Website", href = "" }]
-internal_modules = [
-    "gcourier/mug/**"
+internal_modules = ["gcourier/mug/**"]
+
+[documentation]
+pages = [
+    { title = " ", path = "#", source = "" },
+    { title = "Email Providers", path = "./providers.html", source = "./docs/providers.md" },
 ]
 
 [dependencies]
