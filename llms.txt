@@ -1,0 +1,421 @@
+- [Usage](#usage)
+- [Features](#features)
+- [Provider-Specific Instructions](#provider-specific-instructions)
+- [API Reference](#module-documentation)
+  - [`gcourier`](#gcourier-module)
+  - [`gcourier/smtp`](#gcouriersmtp)
+  - [`gcourier/message`](#gcouriermessage)
+
+[![Package
+Version](https://img.shields.io/hexpm/v/gcourier)](https://hex.pm/packages/gcourier)
+[![Hex
+Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/gcourier/)
+
+`gcourier` provides a simple and easy-to-use interface for sending
+emails from Gleam.
+
+``` sh
+gleam add gcourier@1
+```
+
+``` gleam
+import gcourier
+import gcourier/message
+import gcourier/smtp
+import gleam/erlang/process
+import gleam/option.{Some}
+
+pub fn main() {
+  gcourier.dev_server() // starts an SMTP server that captures and displays emails.
+  let message =
+    message.build()
+    |> message.set_from("party@funclub.org", Some("The Fun Club 🎉"))
+    |> message.add_recipient("jane.doe@example.com", message.To)
+    |> message.add_recipient("john.doe@example.net", message.CC)
+    |> message.set_subject("You're Invited: Pizza & Ping Pong Night!")
+    |> message.set_html(
+      "
+        <html>
+            <body>
+                <h1 style='color:tomato;'>🎈 You're Invited! 🎈</h1>
+                <p>Hey friend,</p>
+                <p>We're hosting a <strong>Pizza & Ping Pong Night</strong> this Friday at 7 PM. 
+                Expect good vibes, cheesy slices, and fierce paddle battles!</p>
+                <p>Let us know if you're in. And bring your A-game. 🏓</p>
+                <p>Cheers,<br/>The Fun Club</p>
+            </body>
+        </html>
+    ",
+    )
+
+  // Send the email
+  // Navigate to localhost:8025 to view it in the browser.
+  smtp.send("localhost", 1025, Some(#("user1", "password1")), message)
+  process.sleep_forever()
+}
+```
+
+Further documentation can be found at <https://hexdocs.pm/gcourier>.
+
+## Features
+
+-   Send emails over SMTP
+-   Implement SMTP authentication (`LOGIN` and `PLAIN`)
+    -   Add support for OAUTH2
+-   Built-in SMTP server for testing
+-   Add support for additional transports like sendmail and SES
+-   Improve test coverage and error handling
+
+## Development
+
+``` sh
+gleam run   # Run the project
+gleam test  # Run the tests
+```
+
+<!-- PROVIDER DOCUMENTATION -->
+`gcourier` supports any mail provider that offers SMTP (which includes
+the vast majority of providers). We do not support SMTPS (implicit TLS,
+typically on port 465), but we do support STARTTLS (explicit TLS
+upgrade). If your provider offers multiple ports, you should generally
+choose **port 587**. If 587 is not available, try port 25 or 2525.
+
+Most consumer email providers (like Gmail, Outlook, Yahoo) require you
+to generate an **app-specific password**. Others (like Mailgun or Amazon
+SES) will provide you with SMTP credentials.
+
+The username you pass to `smtp.send` should be the SMTP credential
+provided by your email provider---not necessarily the email address
+you're sending from.
+
+If you are using a provider not documented here and encounter issues,
+please feel free to open an issue, and we will try to provide support.
+We would also appreciate it if you update this document with any
+provider-specific idiosyncrasies you discover.
+
+## Provider-Specific Instructions
+
+-   [Amazon SES](/providers/ses.html)
+
+## Amazon SES
+
+`gcourier` can send emails using Amazon SES's [SMTP
+interface](https://docs.aws.amazon.com/ses/latest/dg/send-email-smtp.html).
+You will need to create SMTP credentials by following [these
+instructions](https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html).
+The SMTP endpoint will be `email.<region>.amazonaws.com` (for example,
+`email.us-east-1.amazonaws.com`), and the port will be 587. Do not use
+port 465 or 2465.
+
+``` gleam
+let ses_username = "AKIAIOSFODNN7EXAMPLE"
+let password = "BcD12345EXAMPLEencryptedKey=="
+
+let msg = message.build() |> message.set_from("jeff@amazon.com") // etc...
+
+smtp.send("email.us-east-1.amazonaws.com", 587, Some(#(email, password)), msg)
+```
+
+## Gmail/Outlook/Yahoo
+
+`gcourier` does not support OAUTH, but it's still possible to use Gmail,
+Outlook, or Yahoo with an app-specific password. The instructions for
+creating an app-specific password:
+
+-   [Gmail](https://myaccount.google.com/apppasswords)
+-   [Outlook](https://support.microsoft.com/en-us/account-billing/how-to-get-and-use-app-passwords-5896ed9b-4263-e681-128a-a6f2979a7944)
+-   [Yahoo](https://help.yahoo.com/kb/SLN15241.html)
+
+Then, you can send emails as follows:
+
+``` gleam
+let email = "me@gmail.com" // or me@outlook.com, me@yahoo.com
+let password = "APP_SPECIFIC_PASSWORD"
+
+smtp.send("SMTP_SERVER", 587, Some(#(email, password)), msg)
+```
+
+Replace `SMTP_SERVER` with the correct one for your provider:
+
+  Provider   SMTP Server           Port
+  ---------- --------------------- ------
+  Gmail      smtp.gmail.com        587
+  Outlook    smtp.outlook.com      587
+  Yahoo      smtp.mail.yahoo.com   587
+
+These instructions should be similar for most other providers like Zoho
+and Fastmail.
+
+<!-- MODULE DOCUMENTATION -->
+=<!-- `gcourier` module -->=
+## Values
+
+-   [dev_server](#dev_server)
+
+# [gcourier](#module-name) {.icon .icon-gleam-chasse} {#module-name .module-name}
+
+# [Values](#module-values) {.icon .icon-gleam-chasse} {#module-values .module-member-kind}
+
+## [dev_server](#dev_server)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier.gleam#L27-L27 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn dev_server() -> Nil
+```
+
+Starts an SMTP server that captures outgoing mail and displays it in the
+browser. By default, the server runs on localhost:1025, and the UI runs
+on localhost:8025. It accepts username and password combination.
+
+=<!-- `gcourier/smtp` -->=
+## Values
+
+-   [send](#send)
+
+# [gcourier/smtp](#module-name) {.icon .icon-gleam-chasse} {#module-name .module-name}
+
+# [Values](#module-values) {.icon .icon-gleam-chasse} {#module-values .module-member-kind}
+
+## [send](#send)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/smtp.gleam#L21-L26 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn send(
+  host: String,
+  port: Int,
+  auth: Option(#(String, String)),
+  message: Message,
+) -> Nil
+```
+
+=<!-- `gcourier/message` -->=
+## Types
+
+-   [Message](#Message)
+-   [RecipientType](#RecipientType)
+
+## Values
+
+-   [add_recipient](#add_recipient)
+-   [build](#build)
+-   [render](#render)
+-   [set_date](#set_date)
+-   [set_from](#set_from)
+-   [set_html](#set_html)
+-   [set_sender](#set_sender)
+-   [set_subject](#set_subject)
+-   [set_text](#set_text)
+
+# [gcourier/message](#module-name) {.icon .icon-gleam-chasse} {#module-name .module-name}
+
+This module provides tools for constructing RFC-compliant email
+messages.
+
+# [Types](#module-types) {.icon .icon-gleam-chasse-2} {#module-types .module-member-kind}
+
+## [Message](#Message) {#Message}
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L13-L13 "View Source"){.member-source
+alt="View Source"}
+
+
+``` {.hljs .gleam}
+pub type Message {
+  Message(
+    headers: Dict(String, String),
+    to: List(String),
+    cc: List(String),
+    bcc: List(String),
+    content: String,
+  )
+}
+```
+
+### Constructors
+
+-   ::: constructor-row
+    {.icon
+    .icon-star}
+    ``` constructor-name
+    Message(
+      headers: Dict(String, String),
+      to: List(String),
+      cc: List(String),
+      bcc: List(String),
+      content: String,
+    )
+    ```
+    :::
+
+    ::: constructor-item-docs
+    :::
+
+## [RecipientType](#RecipientType) {#RecipientType}
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L23-L23 "View Source"){.member-source
+alt="View Source"}
+
+
+``` {.hljs .gleam}
+pub type RecipientType {
+  To
+  CC
+  BCC
+}
+```
+
+### Constructors
+
+-   ::: constructor-row
+    {.icon
+    .icon-star}
+    ``` constructor-name
+    To
+    ```
+    :::
+
+    ::: constructor-item-docs
+    :::
+
+-   ::: constructor-row
+    {.icon
+    .icon-star}
+    ``` constructor-name
+    CC
+    ```
+    :::
+
+    ::: constructor-item-docs
+    :::
+
+-   ::: constructor-row
+    {.icon
+    .icon-star}
+    ``` constructor-name
+    BCC
+    ```
+    :::
+
+    ::: constructor-item-docs
+    :::
+
+# [Values](#module-values) {.icon .icon-gleam-chasse} {#module-values .module-member-kind}
+
+## [add_recipient](#add_recipient)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L124-L128 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn add_recipient(
+  message: Message,
+  email: String,
+  recipient_type: RecipientType,
+) -> Message
+```
+
+Add the provided address to the list of recipients.
+
+recipient_type should be one of To, Cc, or Bcc.
+
+## [build](#build)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L29-L29 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn build() -> Message
+```
+
+
+## [render](#render)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L33-L33 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn render(message: Message) -> String
+```
+
+
+## [set_date](#set_date)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L157-L157 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn set_date(message: Message, date: String) -> Message
+```
+
+Set the Date header for the email. Optional.
+
+If this is not explicitly set, the current system time will be used
+automatically when the message is sent. This header indicates when the
+email was created.
+
+## [set_from](#set_from)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L113-L117 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn set_from(
+  message: Message,
+  sender_address address: String,
+  sender_name name: Option(String),
+) -> Message
+```
+
+Set the FROM header in the email.
+
+## [set_html](#set_html)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L163-L163 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn set_html(message: Message, html: String) -> Message
+```
+
+
+## [set_sender](#set_sender)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L145-L149 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn set_sender(
+  message: Message,
+  sender_address address: String,
+  sender_name name: Option(String),
+) -> Message
+```
+
+Set the *optional* sender header. Prefer FROM in most cases.
+
+This field is useful when the email is sent on behalf of a third party
+or there are multiple emails in the FROM field.
+
+## [set_subject](#set_subject)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L137-L137 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn set_subject(message: Message, subject: String) -> Message
+```
+
+Set the message's subject line. Optional.
+
+## [set_text](#set_text)
+
+[\</\>](https://github.com/gideongrinberg/gcourier/blob/v1.0.0/src/gcourier/message.gleam#L169-L169 "View Source"){.member-source
+alt="View Source"}
+
+``` {.hljs .gleam}
+pub fn set_text(message: Message, text: String) -> Message
+```

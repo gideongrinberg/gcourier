@@ -4,13 +4,15 @@ description = "Send emails with Gleam."
 licences = ["MIT"]
 repository = { type = "github", user = "gideongrinberg", repo = "gcourier" }
 target = "erlang"
-# links = [{ title = "Website", href = "" }]
+links = [{ title = "Docs for LLMs", href = "https://cdn.jsdelivr.net/gh/gideongrinberg/gcourier/llms.txt" }]
 internal_modules = ["gcourier/mug/**"]
 
 [documentation]
 pages = [
     { title = " ", path = "#", source = "" },
-    { title = "Email Providers", path = "./providers.html", source = "./docs/providers.md" },
+    { title = "Email Providers", path = "providers.html", source = "./pages/providers.md" },
+    { title = "&nbsp;&nbsp;&nbsp;&nbsp;Amazon SES", path = "providers/ses.html", source = "./pages/providers/ses.md" },
+    { title = "&nbsp;&nbsp;&nbsp;&nbsp;Gmail", path = "providers/gmail.html", source = "./pages/providers/gmail.md" }
 ]
 
 [dependencies]
