@@ -79,7 +79,7 @@ fn render_multipart(message: Message) {
       })
       |> string.join(with: "\r\n")
     }
-    <> "\n--"
+    <> "\r\n--"
     <> boundary
     <> "--\r\n"
 
@@ -96,7 +96,7 @@ fn render_attachment(boundary: String, attachment: Attachment) {
   <> boundary
   <> "\r\nContent-Type: "
   <> attachment.content_type
-  <> "\nContent-Disposition: "
+  <> "\r\nContent-Disposition: "
   <> "attachment; filename=\""
   <> attachment.name
   <> "\"\r\n"
