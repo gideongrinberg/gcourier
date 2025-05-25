@@ -10,6 +10,7 @@ pub fn main() {
   let recipient_email = input("Enter recipient's email: ")
   let subject = input("Subject: ")
   let body = input("Body: ")
+  let attach = input("Attach file? (y/N)")
 
   let msg =
     message.build()
@@ -17,6 +18,13 @@ pub fn main() {
     |> message.add_recipient(recipient_email, message.To)
     |> message.set_subject(subject)
     |> message.set_text(body)
+
+  let msg = case attach {
+    "y" ->
+      msg |> message.add_attachment("./README.md", "README.md", "text/markdown")
+
+    _ -> msg
+  }
 
   smtp.send("smtp.gmail.com", 587, Some(#(sender_email, sender_password)), msg)
 }

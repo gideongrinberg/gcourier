@@ -5,6 +5,10 @@ import gleam/erlang/process
 import gleam/option.{Some}
 
 pub fn main() {
+  test_regular()
+}
+
+fn test_regular() {
   gcourier.dev_server()
   // starts an SMTP server that captures and displays emails.
   let message =
@@ -27,6 +31,7 @@ pub fn main() {
         </html>
     ",
     )
+    |> message.add_attachment("./README.md", "README.md", "text/markdown")
 
   // Send the email
   // Navigate to localhost:8025 to view it in the browser.

@@ -8,6 +8,7 @@ import shellout
 fn find_bin(name: String) -> String
 
 fn check_live() {
+  process.sleep_forever()
   let assert Ok(req) = request.to("localhost:8025")
   let resp = req |> hackney.send
   case resp {

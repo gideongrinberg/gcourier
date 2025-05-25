@@ -1,5 +1,6 @@
 //// This module provides tools for constructing RFC-compliant email messages.
 
+import gleam/bit_array
 import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
@@ -9,6 +10,12 @@ import gleam/string
 import gleam/time/calendar
 import gleam/time/duration
 import gleam/time/timestamp
+import simplifile
+import youid/uuid
+
+pub type Attachment {
+  Attachment(name: String, content_type: String, content: String)
+}
 
 pub type Message {
   Message(
@@ -17,6 +24,7 @@ pub type Message {
     cc: List(String),
     bcc: List(String),
     content: String,
+    attachments: Option(List(Attachment)),
   )
 }
 
@@ -27,16 +35,73 @@ pub type RecipientType {
 }
 
 pub fn build() -> Message {
-  Message(dict.from_list([]), [], [], [], "")
+  Message(dict.from_list([]), [], [], [], "", None)
 }
 
 pub fn render(message: Message) {
+  case message.attachments {
+    Some(_) -> render_multipart(message)
+    None -> render_single(message)
+  }
+}
+
+fn render_single(message: Message) {
   let headers =
     get_headers(message)
     |> list.map(fn(header) { header.0 <> ": " <> header.1 })
     |> string.join("\r\n")
 
   headers <> "\r\n" <> message.content <> "\r\n."
+}
+
+fn render_multipart(message: Message) {
+  let boundary = uuid.v4_string()
+  let assert Ok(body_ctype) = dict.get(message.headers, "Content-Type")
+  let message =
+    message
+    |> set_header(
+      "Content-Type",
+      "multipart/mixed; boundary=\"" <> boundary <> "\"",
+    )
+
+  let assert Some(attachments) = message.attachments
+  let content =
+    "--"
+    <> boundary
+    <> "\r\nContent-Type: "
+    <> body_ctype
+    <> "\r\n\r\n"
+    <> message.content
+    <> "\r\n"
+    <> {
+      list.map(list.reverse(attachments), fn(a) {
+        render_attachment(boundary, a)
+      })
+      |> string.join(with: "\r\n")
+    }
+    <> "\n--"
+    <> boundary
+    <> "--\r\n"
+
+  let headers =
+    get_headers(message)
+    |> list.map(fn(header) { header.0 <> ": " <> header.1 })
+    |> string.join("\r\n")
+
+  headers <> "\r\n" <> content <> "\r\n."
+}
+
+fn render_attachment(boundary: String, attachment: Attachment) {
+  "--"
+  <> boundary
+  <> "\r\nContent-Type: "
+  <> attachment.content_type
+  <> "\nContent-Disposition: "
+  <> "attachment; filename=\""
+  <> attachment.name
+  <> "\"\r\n"
+  <> "Content-Transfer-Encoding: base64\r\n\r\n"
+  <> attachment.content
 }
 
 fn get_headers(message: Message) -> List(#(String, String)) {
@@ -170,6 +235,23 @@ pub fn set_text(message: Message, text: String) {
   message
   |> set_header("Content-Type", "text/plain")
   |> set_content(text)
+}
+
+pub fn add_attachment(
+  message: Message,
+  path: String,
+  name: String,
+  content_type: String,
+) {
+  let assert Ok(content) = simplifile.read_bits(from: path)
+  let content = bit_array.base64_encode(content, False)
+
+  let attachment = Attachment(name:, content_type:, content:)
+  let attachments = case message.attachments {
+    None -> [attachment]
+    Some(a) -> [attachment, ..a]
+  }
+  Message(..message, attachments: Some(attachments))
 }
 
 fn set_content(message: Message, text: String) {
