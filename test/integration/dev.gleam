@@ -31,7 +31,6 @@ fn test_regular() {
         </html>
     ",
     )
-    |> message.add_attachment("./README.md", "README.md", "text/markdown")
 
   // Send the email
   // Navigate to localhost:8025 to view it in the browser.
