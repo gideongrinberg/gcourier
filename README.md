@@ -6,7 +6,7 @@
 `gcourier` provides a simple and easy-to-use interface for sending emails from Gleam.
 
 ```sh
-gleam add gcourier@1.2
+gleam add gcourier@1.2.1
 ```
 
 ```gleam
