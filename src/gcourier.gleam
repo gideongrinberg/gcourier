@@ -7,21 +7,6 @@ import shellout
 @external(erlang, "priv", "find_bin")
 fn find_bin(name: String) -> String
 
-fn check_live() {
-  process.sleep_forever()
-  let assert Ok(req) = request.to("localhost:8025")
-  let resp = req |> hackney.send
-  case resp {
-    Error(_) -> {
-      process.sleep(1000)
-      check_live()
-    }
-    Ok(_) -> {
-      True
-    }
-  }
-}
-
 /// Starts an SMTP server that captures outgoing mail and
 /// displays it in the browser. By default, the server runs on localhost:1025, 
 /// and the UI runs on localhost:8025. It accepts username and password combination.
@@ -50,6 +35,20 @@ pub fn dev_server() {
       io.println("Successfully started SMTP server on localhost:1025.")
       io.println("Running web UI at http://localhost:8025.")
       Nil
+    }
+  }
+}
+
+fn check_live() {
+  let assert Ok(req) = request.to("http://localhost:8025")
+  let resp = req |> hackney.send
+  case resp {
+    Error(_) -> {
+      process.sleep(1000)
+      check_live()
+    }
+    Ok(_) -> {
+      True
     }
   }
 }
