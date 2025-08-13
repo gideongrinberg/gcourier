@@ -48,15 +48,6 @@ pub fn main() {
 
 Further documentation can be found at <https://hexdocs.pm/gcourier>.
 
-## Features
-
-- [x] Send emails over SMTP
-- [x] Implement SMTP authentication (`LOGIN` and `PLAIN`)
-  - [ ] Add support for OAUTH2
-- [x] Built-in SMTP server for testing
-- [ ] Add support for additional transports like sendmail and SES
-- [ ] Improve test coverage and error handling
-
 ## Development
 
 ```sh
