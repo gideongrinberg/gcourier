@@ -16,17 +16,14 @@ pub fn dev_server() {
   case resp {
     Error(_) -> {
       let binary = find_bin("mailpit")
-      process.start(
-        fn() {
-          shellout.command(
-            run: binary,
-            with: ["--smtp-auth-accept-any", "--smtp-auth-allow-insecure"],
-            in: ".",
-            opt: [],
-          )
-        },
-        True,
-      )
+      process.spawn(fn() {
+        shellout.command(
+          run: binary,
+          with: ["--smtp-auth-accept-any", "--smtp-auth-allow-insecure"],
+          in: ".",
+          opt: [],
+        )
+      })
 
       check_live()
       Nil
