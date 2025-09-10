@@ -660,7 +660,7 @@ pub fn selecting_tcp_messages(
   let error = atom.create("tcp_error")
 
   selector
-  |> process.select_record(tag: tcp, fields: 4, mapping: fn(msg) { 
+  |> process.select_record(tag: tcp, fields: 4, mapping: fn(msg) {
     let #(_, socket, _, data) = unsafe_coerce(msg)
     Packet(TcpSocket(socket), data) |> mapper
   })
@@ -703,9 +703,8 @@ pub fn selecting_tls_messages(
   })
 }
 
-
 @external(erlang, "mug_ffi", "coerce")
 fn unsafe_coerce(data: Dynamic) -> a
 
-@external(erlang, "gleam", "identity")
+@external(erlang, "gleam_stdlib", "identity")
 fn cast(data: a) -> Dynamic

@@ -45,13 +45,14 @@ pub fn render(message: Message) {
   }
 }
 
+
 fn render_single(message: Message) {
   let headers =
     get_headers(message)
     |> list.map(fn(header) { header.0 <> ": " <> header.1 })
     |> string.join("\r\n")
 
-  headers <> "\r\n" <> message.content <> "\r\n."
+  headers <> "\r\n\r\n" <> message.content <> "\r\n."
 }
 
 fn render_multipart(message: Message) {
