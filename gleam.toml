@@ -4,21 +4,23 @@ description = "Send emails with Gleam."
 licences = ["MIT"]
 repository = { type = "github", user = "gideongrinberg", repo = "gcourier" }
 target = "erlang"
-links = [{ title = "Docs for LLMs", href = "https://cdn.jsdelivr.net/gh/gideongrinberg/gcourier/llms.txt" }]
+links = [
+  { title = "Docs for LLMs", href = "https://cdn.jsdelivr.net/gh/gideongrinberg/gcourier/llms.txt" },
+]
 internal_modules = ["gcourier/mug/**"]
 
 [documentation]
 pages = [
-    { title = "Changelog", path = "changelog.html", source = "./CHANGELOG.md" },
-    { title = " ", path = "#", source = "" },
-    { title = "Send with Amazon SES", path = "providers/ses.html", source = "./pages/providers/ses.md" },
-    { title = "Send with Gmail", path = "providers/gmail.html", source = "./pages/providers/gmail.md" }
+  { title = "Changelog", path = "changelog.html", source = "./CHANGELOG.md" },
+  { title = " ", path = "#", source = "" },
+  { title = "Send with Amazon SES", path = "providers/ses.html", source = "./pages/providers/ses.md" },
+  { title = "Send with Gmail", path = "providers/gmail.html", source = "./pages/providers/gmail.md" },
 ]
 
 [dependencies]
 gleam_stdlib = ">= 0.59.0 and < 1.0.0"
 gleam_time = ">= 1.2.0 and < 2.0.0"
-gleam_erlang = ">= 0.34.0 and < 1.0.0"
+gleam_erlang = ">= 1.0.0 and < 2.0.0"
 shellout = ">= 1.7.0 and < 2.0.0"
 gleam_http = ">= 4.0.0 and < 5.0.0"
 gleam_hackney = ">= 1.3.1 and < 2.0.0"

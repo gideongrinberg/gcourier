@@ -42,6 +42,7 @@ fn send_smtp(mailer: Mailer, msg: Message) {
       password: mailer.password,
       auth: mailer.auth,
     ))
+
   let from_cmd = "MAIL FROM:<" <> mailer.username <> ">"
   socket_send_checked(socket, from_cmd)
   socket_receive(socket)

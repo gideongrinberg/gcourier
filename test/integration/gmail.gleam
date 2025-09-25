@@ -1,6 +1,6 @@
 import gcourier/message
 import gcourier/smtp
-import gleam/erlang
+// Note: gleam/erlang removed get_line in v1.0.0
 import gleam/option.{None, Some}
 import gleam/string
 
@@ -29,7 +29,11 @@ pub fn main() {
   smtp.send("smtp.gmail.com", 587, Some(#(sender_email, sender_password)), msg)
 }
 
+// External function to get user input (replacement for removed erlang.get_line)
+@external(erlang, "io", "get_line")
+fn get_line(prompt: String) -> String
+
 fn input(prompt: String) -> String {
-  let assert Ok(input) = erlang.get_line(prompt)
+  let input = get_line(prompt)
   string.trim_end(input)
 }

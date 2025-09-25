@@ -416,19 +416,18 @@ fn get_tls_options(vm: TlsVerificationMethod) -> Result(List(SslOption), Error) 
   let opts = [
     // When data is received on the socket queue it in the TCP stack rather than
     // sending it as an Erlang message to the socket owner's inbox.
-    #(ssl_options.Active, dynamic.from(False)),
+    #(ssl_options.Active, dynamic.bool(False)),
     // We want the data from the socket as bit arrays please, not lists.
-    #(ssl_options.Mode, dynamic.from(Binary)),
+    #(ssl_options.Mode, cast(Binary)),
   ]
   case vm {
-    DangerouslyDisableVerification ->
-      Ok([#(Verify, dynamic.from(VerifyNone)), ..opts])
+    DangerouslyDisableVerification -> Ok([#(Verify, cast(VerifyNone)), ..opts])
     Certificates(system, cacerts, certificates_keys) -> {
       use cacerts <- result.try(get_cacerts_opt(system, cacerts))
       Ok([
-        #(Verify, dynamic.from(VerifyPeer)),
+        #(Verify, cast(VerifyPeer)),
         cacerts,
-        #(CertsKeys, dynamic.from(get_certs_keys(certificates_keys))),
+        #(CertsKeys, cast(get_certs_keys(certificates_keys))),
       ])
     }
   }
@@ -440,22 +439,22 @@ fn get_cacerts_opt(
 ) -> Result(SslOption, Error) {
   case system, cacerts {
     False, Some(DerEncodedCaCertificates(cacerts)) ->
-      Ok(#(Cacerts, dynamic.from(cacerts)))
+      Ok(#(Cacerts, cast(cacerts)))
     True, Some(DerEncodedCaCertificates(cacerts)) -> {
       let certs =
         system_cacerts.get() |> result.map_error(SystemCacertificatesGetError)
       use certs <- result.try(certs)
-      Ok(#(Cacerts, dynamic.from(list.flatten([certs.0, cacerts]))))
+      Ok(#(Cacerts, cast(list.flatten([certs.0, cacerts]))))
     }
     _, Some(PemEncodedCaCertificates(cacerts)) ->
-      Ok(#(Cacertfile, dynamic.from(string.to_utf_codepoints(cacerts))))
+      Ok(#(Cacertfile, cast(string.to_utf_codepoints(cacerts))))
     True, None -> {
       let certs =
         system_cacerts.get() |> result.map_error(SystemCacertificatesGetError)
       use certs <- result.try(certs)
-      Ok(#(Cacerts, dynamic.from(certs)))
+      Ok(#(Cacerts, cast(certs)))
     }
-    False, None -> Ok(#(Cacerts, dynamic.from([])))
+    False, None -> Ok(#(Cacerts, cast([])))
   }
 }
 
@@ -484,9 +483,9 @@ pub fn connect(options: ConnectionOptions) -> Result(Socket, Error) {
       let gen_options = [
         // When data is received on the socket queue it in the TCP stack rather than
         // sending it as an Erlang message to the socket owner's inbox.
-        #(Active, dynamic.from(False)),
+        #(Active, dynamic.bool(False)),
         // We want the data from the socket as bit arrays please, not lists.
-        #(Mode, dynamic.from(Binary)),
+        #(Mode, cast(Binary)),
       ]
       gen_tcp_connect(host, options.port, gen_options, options.timeout)
       |> result.map(TcpSocket)
@@ -616,10 +615,9 @@ pub fn shutdown(socket: Socket) -> Result(Nil, Error)
 ///
 pub fn receive_next_packet_as_message(socket: Socket) -> Nil {
   case socket {
-    TcpSocket(socket) ->
-      set_tcp_socket_options(socket, [#(Active, dynamic.from(Once))])
+    TcpSocket(socket) -> set_tcp_socket_options(socket, [#(Active, cast(Once))])
     SslSocket(socket) ->
-      set_ssl_socket_options(socket, [#(ssl_options.Active, dynamic.from(Once))])
+      set_ssl_socket_options(socket, [#(ssl_options.Active, cast(Once))])
   }
   Nil
 }
@@ -657,14 +655,23 @@ pub fn selecting_tcp_messages(
   selector: process.Selector(t),
   mapper: fn(TcpMessage) -> t,
 ) -> process.Selector(t) {
-  let tcp = atom.create_from_string("tcp")
-  let closed = atom.create_from_string("tcp_closed")
-  let error = atom.create_from_string("tcp_error")
+  let tcp = atom.create("tcp")
+  let closed = atom.create("tcp_closed")
+  let error = atom.create("tcp_error")
 
   selector
-  |> process.selecting_record3(tcp, unsafe_coerce_tcp_packet(mapper))
-  |> process.selecting_record2(closed, unsafe_coerce_tcp_closed(mapper))
-  |> process.selecting_record3(error, unsafe_coerce_to_tcp_error(mapper))
+  |> process.select_record(tag: tcp, fields: 4, mapping: fn(msg) {
+    let #(_, socket, _, data) = unsafe_coerce(msg)
+    Packet(TcpSocket(socket), data) |> mapper
+  })
+  |> process.select_record(tag: closed, fields: 1, mapping: fn(msg) {
+    let #(_, socket) = unsafe_coerce(msg)
+    SocketClosed(TcpSocket(socket)) |> mapper
+  })
+  |> process.select_record(tag: error, fields: 2, mapping: fn(msg) {
+    let #(_, socket, reason) = unsafe_coerce(msg)
+    TcpError(TcpSocket(socket), reason) |> mapper
+  })
 }
 
 /// Configure a selector to receive messages from TLS sockets.
@@ -677,63 +684,27 @@ pub fn selecting_tls_messages(
   selector: process.Selector(t),
   mapper: fn(TcpMessage) -> t,
 ) -> process.Selector(t) {
-  let ssl = atom.create_from_string("ssl")
-  let closed = atom.create_from_string("ssl_closed")
-  let error = atom.create_from_string("ssl_error")
+  let ssl = atom.create("ssl")
+  let closed = atom.create("ssl_closed")
+  let error = atom.create("ssl_error")
 
   selector
-  |> process.selecting_record3(ssl, unsafe_coerce_tls_packet(mapper))
-  |> process.selecting_record2(closed, unsafe_coerce_tls_closed(mapper))
-  |> process.selecting_record3(error, unsafe_coerce_to_tls_tcp_error(mapper))
-}
-
-fn unsafe_coerce_tcp_packet(
-  mapper: fn(TcpMessage) -> t,
-) -> fn(Dynamic, Dynamic) -> t {
-  fn(socket, data) {
-    Packet(TcpSocket(unsafe_coerce(socket)), unsafe_coerce(data))
-    |> mapper
-  }
-}
-
-fn unsafe_coerce_tls_packet(
-  mapper: fn(TcpMessage) -> t,
-) -> fn(Dynamic, Dynamic) -> t {
-  fn(socket, data) {
-    Packet(SslSocket(unsafe_coerce(socket)), unsafe_coerce(data))
-    |> mapper
-  }
-}
-
-fn unsafe_coerce_tcp_closed(mapper: fn(TcpMessage) -> t) -> fn(Dynamic) -> t {
-  fn(socket) {
-    SocketClosed(TcpSocket(unsafe_coerce(socket)))
-    |> mapper
-  }
-}
-
-fn unsafe_coerce_tls_closed(mapper: fn(TcpMessage) -> t) -> fn(Dynamic) -> t {
-  fn(socket) {
-    SocketClosed(SslSocket(unsafe_coerce(socket)))
-    |> mapper
-  }
-}
-
-fn unsafe_coerce_to_tcp_error(
-  mapper: fn(TcpMessage) -> t,
-) -> fn(Dynamic, Dynamic) -> t {
-  fn(socket, reason) {
-    mapper(TcpError(TcpSocket(unsafe_coerce(socket)), unsafe_coerce(reason)))
-  }
-}
-
-fn unsafe_coerce_to_tls_tcp_error(
-  mapper: fn(TcpMessage) -> t,
-) -> fn(Dynamic, Dynamic) -> t {
-  fn(socket, reason) {
-    mapper(TcpError(SslSocket(unsafe_coerce(socket)), unsafe_coerce(reason)))
-  }
+  |> process.select_record(tag: ssl, fields: 4, mapping: fn(msg) {
+    let #(_, socket, _, data) = unsafe_coerce(msg)
+    Packet(SslSocket(socket), data) |> mapper
+  })
+  |> process.select_record(tag: closed, fields: 1, mapping: fn(msg) {
+    let #(_, socket) = unsafe_coerce(msg)
+    SocketClosed(SslSocket(socket)) |> mapper
+  })
+  |> process.select_record(tag: error, fields: 2, mapping: fn(msg) {
+    let #(_, socket, reason) = unsafe_coerce(msg)
+    TcpError(SslSocket(socket), reason) |> mapper
+  })
 }
 
 @external(erlang, "mug_ffi", "coerce")
 fn unsafe_coerce(data: Dynamic) -> a
+
+@external(erlang, "gleam_stdlib", "identity")
+fn cast(data: a) -> Dynamic
