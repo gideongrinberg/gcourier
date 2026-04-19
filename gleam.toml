@@ -4,9 +4,6 @@ description = "Send emails with Gleam."
 licences = ["MIT"]
 repository = { type = "github", user = "gideongrinberg", repo = "gcourier" }
 target = "erlang"
-links = [
-  { title = "Docs for LLMs", href = "https://cdn.jsdelivr.net/gh/gideongrinberg/gcourier/llms.txt" },
-]
 internal_modules = ["gcourier/mug/**"]
 
 [documentation]
