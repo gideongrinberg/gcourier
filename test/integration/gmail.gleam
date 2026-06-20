@@ -1,5 +1,6 @@
-import gcourier/message
-import gcourier/smtp
+import gcourier
+import simplifile
+
 // Note: gleam/erlang removed get_line in v1.0.0
 import gleam/option.{None, Some}
 import gleam/string
@@ -13,20 +14,33 @@ pub fn main() {
   let attach = input("Attach file? (y/N)")
 
   let msg =
-    message.build()
-    |> message.set_from(sender_email, None)
-    |> message.add_recipient(recipient_email, message.To)
-    |> message.set_subject(subject)
-    |> message.set_text(body)
+    gcourier.new_message(
+      gcourier.Address(None, sender_email),
+      gcourier.Address(None, recipient_email),
+    )
+    |> gcourier.set_subject(subject)
+    |> gcourier.set_content(gcourier.Text(body))
 
   let msg = case attach {
-    "y" ->
-      msg |> message.add_attachment("./README.md", "README.md", "text/markdown")
+    "y" -> {
+      let assert Ok(content) = simplifile.read_bits("./README.md")
+
+      msg |> gcourier.add_attachment(content, "README.md", "text/markdown")
+    }
 
     _ -> msg
   }
 
-  smtp.send("smtp.gmail.com", 587, Some(#(sender_email, sender_password)), msg)
+  let assert Ok(mailer) =
+    gcourier.start_smtp(
+      "smtp.gmail.com",
+      587,
+      Some(gcourier.Auth(sender_email, sender_password)),
+      gcourier.AllowNonTls,
+    )
+
+  let assert Ok(_) = gcourier.send(mailer, msg)
+  let assert Ok(_) = gcourier.stop(mailer)
 }
 
 // External function to get user input (replacement for removed erlang.get_line)

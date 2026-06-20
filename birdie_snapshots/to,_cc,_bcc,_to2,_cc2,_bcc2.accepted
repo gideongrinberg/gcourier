@@ -1,0 +1,13 @@
+---
+version: 1.5.4
+title: to, cc, bcc, to2, cc2, bcc2
+file: ./test/gcourier/message_test.gleam
+test_name: recipients_test
+---
+Date: Tue, 14 Apr 2026 20:26:23 +0000
+From: from@example.com
+To: to2@example.com, to@example.com
+Cc: cc2@example.com, cc@example.com
+Content-Type: text/plain
+
+

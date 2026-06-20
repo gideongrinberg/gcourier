@@ -1,0 +1,12 @@
+---
+version: 1.5.4
+title: from: Test User <test@example.com> | to: <test1@example.com>
+file: ./test/gcourier/message_test.gleam
+test_name: minimal_message_test
+---
+Date: Tue, 14 Apr 2026 20:26:23 +0000
+From: Test User <test@example.com>
+To: test1@example.com
+Content-Type: text/plain
+
+

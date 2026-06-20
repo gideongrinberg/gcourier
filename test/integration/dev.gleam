@@ -1,7 +1,4 @@
 import gcourier
-import gcourier/message
-import gcourier/smtp
-import gleam/erlang/process
 import gleam/option.{Some}
 
 pub fn main() {
@@ -9,15 +6,16 @@ pub fn main() {
 }
 
 fn test_regular() {
-  gcourier.dev_server()
-  // starts an SMTP server that captures and displays emails.
   let message =
-    message.build()
-    |> message.set_from("party@funclub.org", Some("The Fun Club 🎉"))
-    |> message.add_recipient("jane.doe@example.com", message.To)
-    |> message.add_recipient("john.doe@example.net", message.CC)
-    |> message.set_subject("You're Invited: Pizza & Ping Pong Night!")
-    |> message.set_html(
+    gcourier.new_message(
+      gcourier.Address(Some("The Fun Club 🎉"), "party@funclub.org"),
+      gcourier.Address(Some("Jane Doe"), "jane.doe@example.com"),
+    )
+    |> gcourier.add_recipient(
+      gcourier.Cc(gcourier.Address(Some("John Doe"), "john.doe@example.net")),
+    )
+    |> gcourier.set_subject("You're Invited: Pizza & Ping Pong Night!")
+    |> gcourier.set_content(gcourier.Html(
       "
         <html>
             <body>
@@ -30,10 +28,23 @@ fn test_regular() {
             </body>
         </html>
     ",
+    ))
+
+  // start a new smtp mailer
+  let assert Ok(mailer) =
+    gcourier.start_smtp(
+      "localhost",
+      1025,
+      // Some(gcourier.Auth("user1", "password1")),
+      option.None,
+      gcourier.AllowNonTls,
     )
+    as "did you start mailpit?"
 
   // Send the email
   // Navigate to localhost:8025 to view it in the browser.
-  smtp.send("localhost", 1025, Some(#("user1", "password1")), message)
-  process.sleep_forever()
+  let assert Ok(_) = gcourier.send(mailer, message)
+
+  // stop the mailer
+  let assert Ok(_) = gcourier.stop(mailer)
 }

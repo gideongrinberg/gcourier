@@ -1,0 +1,13 @@
+---
+version: 1.5.4
+title: Test Subject
+file: ./test/gcourier/message_test.gleam
+test_name: subject_test
+---
+Date: Tue, 14 Apr 2026 20:26:23 +0000
+From: from@example.com
+To: test1@example.com
+Subject: Test Subject
+Content-Type: text/plain
+
+

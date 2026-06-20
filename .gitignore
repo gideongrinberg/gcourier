@@ -9,3 +9,5 @@ priv/
 *.pem
 
 .DS_Store
+# Ignore direnv cache
+.direnv/

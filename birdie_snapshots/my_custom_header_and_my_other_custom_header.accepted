@@ -1,0 +1,14 @@
+---
+version: 1.5.4
+title: MyCustomHeader and MyOtherCustomHeader
+file: ./test/gcourier/message_test.gleam
+test_name: custom_header_test
+---
+Date: Tue, 14 Apr 2026 20:26:23 +0000
+From: Test User <test@example.com>
+To: test1@example.com
+Content-Type: text/plain
+MyCustomHeader: MyCustomHeaderValue
+MyOtherCustomHeader: MyOtherCustomHeaderValue
+
+

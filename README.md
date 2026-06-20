@@ -17,14 +17,12 @@ import gleam/erlang/process
 import gleam/option.{Some}
 
 pub fn main() {
-  gcourier.dev_server() // starts an SMTP server that captures and displays emails.
   let message =
-    message.build()
-    |> message.set_from("party@funclub.org", Some("The Fun Club 🎉"))
-    |> message.add_recipient("jane.doe@example.com", message.To)
-    |> message.add_recipient("john.doe@example.net", message.CC)
-    |> message.set_subject("You're Invited: Pizza & Ping Pong Night!")
-    |> message.set_html(
+    gcourier.new_message(gcourier.Sender(Address("The Fun Club 🎉"), "party@funclub.org"))
+    |> gcourier.add_recipient(gcourier.To("jane.doe@example.com"))
+    |> gcourier.add_recipient(gcourier.Cc("john.doe@example.net"))
+    |> gcourier.set_subject("You're Invited: Pizza & Ping Pong Night!")
+    |> gcourier.set_content(gcourier.Html(
       "
         <html>
             <body>
@@ -37,11 +35,25 @@ pub fn main() {
             </body>
         </html>
     ",
+    ))
+
+  // start a new smtp mailer
+  let assert Ok(mailer) =
+    gcourier.start_smtp(
+      "localhost",
+      1025,
+      Some(gcourier.Auth("user1", "password1")),
+      gcourier.AllowNonTls,
     )
 
   // Send the email
   // Navigate to localhost:8025 to view it in the browser.
-  smtp.send("localhost", 1025, Some(#("user1", "password1")), message)
+  let assert Ok(_) = gcourier.send(mailer, message)
+
+  // stop the mailer
+  let assert Ok(_) = gcourier.stop(mailer)
+
+ 
   process.sleep_forever()
 }
 ```
@@ -54,3 +66,7 @@ Further documentation can be found at <https://hexdocs.pm/gcourier>.
 gleam run   # Run the project
 gleam test  # Run the tests
 ```
+
+### SMTP test server
+
+If you need an smtp server to test against, or have previously used `gcourier.dev_server` consider [mailpit](https://github.com/axllent/mailpit)

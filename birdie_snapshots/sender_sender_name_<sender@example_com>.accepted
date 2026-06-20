@@ -1,0 +1,13 @@
+---
+version: 1.5.4
+title: Sender: Sender Name <sender@example.com>
+file: ./test/gcourier/message_test.gleam
+test_name: sender_header_test
+---
+Date: Tue, 14 Apr 2026 20:26:23 +0000
+From: Test User <test@example.com>
+To: test1@example.com
+Sender: Sender Name <sender@example.com>
+Content-Type: text/plain
+
+
